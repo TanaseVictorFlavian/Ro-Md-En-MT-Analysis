@@ -1,4 +1,5 @@
 import os
+import sys
 from xml.parsers.expat import model
 from google import genai
 from google.api_core import exceptions
@@ -58,10 +59,12 @@ def generate_pairs(source_data:list[str], pair_idx_start: int, client, pairs_per
     
     formatted_source = "\n".join(f"<text>{sentence}</text>" for sentence in source)
     try:
-        response = client.models.generate_content(model="gemini-2.5-flash", contents=prompt.format(sentences=formatted_source))
+        response = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt.format(sentences=formatted_source))
         targets = [strip_target(t) for t in response.text.splitlines()]
 
         if len(targets) != len(source):
+            for t in targets:
+                print(t)
             raise ValueError("Source/target length mismatch")
         
         for i, (s, t) in enumerate(zip(source,targets)):
@@ -69,6 +72,7 @@ def generate_pairs(source_data:list[str], pair_idx_start: int, client, pairs_per
 
     except Exception as e: 
         print(f"Request limit reached: {e}")
+        sys.exit(1)
 
 parallel_corpus_dir = Path.cwd() / "parallel_corpus"
 
@@ -84,12 +88,15 @@ with open("md_source.txt", "r", encoding="utf-8") as f:
 merged_dataset = ro_sentences + md_sentences
 
 print(len(merged_dataset))
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY2"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY3"))
 
 for _ in range(REQUEST_LIMIT):
     # Time tracking to respect the request per minute limit
     start_time = time.time()
     pair_idx = len(os.listdir(parallel_corpus_dir))
+    if pair_idx >= 30000:
+        print("All pairs generated.")
+        break
 
     print(f"Pair index:{pair_idx}")
 
