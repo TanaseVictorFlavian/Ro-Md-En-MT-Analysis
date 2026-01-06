@@ -210,3 +210,6 @@ __marimo__/
 !/data/.gitkeep
 parallel_corpus.zip
 parallel_corpus/
+uv.lock
+pyproject.toml
+*.png
